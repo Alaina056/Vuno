@@ -10,7 +10,19 @@
 5. (err,req, res, next) --> next is a flag variable k mera kaam huwa hai ya nge
 
 
+VIDEO 10: 
+6. MONGODB Bson mai data save krta hai
+The BSON data type is the binary representation of a JSON data type format for serializing JSON documents. When you insert JSON documents through the wire listener with MongoDB API commands, a BSON column that is named data is created in the specified collection.
+7. For images and videos storing in db, we use a third party service (it could be AWS, cloudinary etc), we upload our data their, then it generates a URL, and we save this URL as string in our database.
 
+8. true power of Mongodb is "Aggregation queries/pipeline"
+for this we use, mongoose-aggregate-paginate-v2
+        A page based custom aggregate pagination library for Mongoose with customizable labels.
+
+If you are looking for basic query pagination library without aggregate, use this one mongoose-paginate-v2
+
+9. REFRESH Token is not stored in the db
+10. we write generateTokens() fn in models
 
 
 
