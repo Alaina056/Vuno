@@ -1,13 +1,14 @@
 // we use multer to upload files 
 
-import { v2 as cloudinary } from "cloudinary";
+import { v2 as cloudinary } from 'cloudinary';
 import fs from "fs";
 
 //~ This configuration allows you to talk with cloudinary
   // Configuration
     cloudinary.config({ 
         cloud_name: process.env.CLOUDINARY_CLOUD_NAME, 
-        api_key: process.env.CLOUDINARY_API_KEY, 
+        // api_key: process.env.CLOUDINARY_API_KEY,
+        api_key: "734155213489923", 
         api_secret: process.env.CLOUDINARY_API_SECRET // Click 'View API Keys' above to copy your API secret
     });
 
@@ -23,13 +24,14 @@ const uploadOnCloudinary = async (localFilePath) =>{
     //     })
 
 
-    const response = await cloudinary.uploader(
+    const response = await cloudinary.uploader.upload(
         localFilePath,{
             resource_type: "auto"
         })
 
         // file has been uploaded succsfully 
         console.log("file is uploaded on cloudinary", response.url)
+        fs.unlinkSync(localFilePath)
         return response;
   } catch (error){
     fs.unlinkSync(localFilePath) // removed the locally saved temporary file as the upload is failed
@@ -37,5 +39,5 @@ const uploadOnCloudinary = async (localFilePath) =>{
   }
     
 }
-ser
+
 export {uploadOnCloudinary}

@@ -15,14 +15,14 @@ const registerUser = asyncHandler(async (req, res) => {
 
   //? STEP 1: Get data from User
   // We can take data from user, by URL, Form(req.body), Params
-  const { fullName, email, username, password } = req.body;
+  const { fullname, email, username, password } = req.body;
   // console.log(req.body);
 
   //? STEP 2: File Handling (see user.routes.js --> upload middleware)
 
   //? STEP 3 : Validating User Data
   if (
-    [fullName, email, username, password].some((field) => field?.trim() === "")
+    [fullname, email, username, password].some((field) => field?.trim() === "")
   ) {
     throw new ApiError(400, "All Fields are required");
   } else if (!email.includes("@")) {
@@ -34,7 +34,7 @@ const registerUser = asyncHandler(async (req, res) => {
   // like jo bhi db /tables se commuincation hai wo un moongose.model se bnai gayai schema obj se hi hogi
 
   // moongoose funcitons and operators
-  const existedUser = User.findOne({
+  const existedUser = await User.findOne({
     $or: [{ email }, { username }], // or operator in mongodb
   });
 
@@ -58,8 +58,8 @@ const registerUser = asyncHandler(async (req, res) => {
 //? STEP 6 : Upload Images/ Files to Cloudinary ( From local server to Cloudinary )
    //* this is necessary to check if file is uploaded in cloudinary even if we have locally uploaded
 
+       const coverImage = await uploadOnCloudinary(coverLocalPath)
     const avatar = await uploadOnCloudinary(avatarLocalPath);
-    const coverImage = await uploadOnCloudinary(coverLocalPath)
 
     //* Checking if avatar is properly uploaded on cloudinary as it is a mandatory field
     if(!avatar){
@@ -70,7 +70,7 @@ const registerUser = asyncHandler(async (req, res) => {
     //* you need to do some working to ensure double entry for the same user is not created in db like diabling the submit button in form etc
        // db se baat krte waqt potentially error milskta hai , Second db dusrai content mai hai to time lgai ga
    const user = await User.create({
-        fullName,
+        fullname,
         avatar: avatar.url,
         coverImage: coverImage?.url || "",
         email,
@@ -89,7 +89,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
 //? STEP 9: Sending response to Client (browser)
    return res.status(201).json(
-        new ApiResponse(200, createdUser, "User registered successfully")
+        new ApiResponse(200, createdUser, "User registered")
    )
 });
 
