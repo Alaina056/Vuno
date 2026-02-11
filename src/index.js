@@ -5,7 +5,7 @@ import { app } from "./app.js";
 //As early as possible , import and configure environment variable
 
 dotenv.config({
-    path: './env'
+    path: './.env'
 })
 
 let portNumber = process.env.PORT || 8000;

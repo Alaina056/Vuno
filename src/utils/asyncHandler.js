@@ -2,7 +2,9 @@
 
 // promise wala way 
 const asyncHandler  = (requestHandler)=>{
-    (req,res, next)=>{
+    // this is the function definintion, we are returning this function definition and not calling this,
+    // express k through hm code likhte hai to hmarai pass 4 cheezai hoti hai by default: err,req, res, next
+   return (req,res, next)=>{
         Promise.resolve( requestHandler(req,res, next))
         .catch((error)=>{ next(error )})
     }

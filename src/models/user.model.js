@@ -60,11 +60,11 @@ const userSchema = new Schema(
 // every callback on hooks have three params must --> req , res, next()
 userSchema.pre("save", async function (next) {
     
-    // we do not want to change the encrypted password only when the password is modified
+    // we  want to change the encrypted password only when the password is modified
                                                         // next() callback means apna kaam hogya hai ab next hook/middleware pr brh jao            
     if(!this.isModified("password")) return next()
                                                 // hash round - 10
-    this.password = bcrypt.hash(this.password,10);
+    this.password = await bcrypt.hash(this.password,10);
     next();
 })
 

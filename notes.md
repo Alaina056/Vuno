@@ -24,7 +24,38 @@ If you are looking for basic query pagination library without aggregate, use thi
 9. REFRESH Token is not stored in the db
 10. we write generateTokens() fn in models
 
+------------------------------------------------------------------------------------
+VIDEO 12: ROUTING
+Exmaple GET Request
 
+GET /api/profile/me
+This means you’re asking the server, “Hey, give me the profile info.”
+
+And here’s the backend code that handles this:
+
+app.get('/api/profile/me', (c) => {
+  return c.json({
+    name: 'Steve Rogers',
+    role: 'Captain America',
+    team: 'Avengers'
+  });
+});
+app.get(...) this listens for a GET request at the route /api/profile/me
+c.json(...) this sends back a JSON response.
+Inside the response, we’re sending some data like name, role, and team. Just like a real profile!
+
+Let’s break it down:
+Intent GET
+Route /api/profile/me
+Response some user data from the serve
+
+
+
+SO, GET with a URL means in frontend means, asking the server to give me this data
+and GET in backend means ,server is listening GET request on a specific URL , and whenever that hits, i am going to send you response 
+
+article : https://medium.com/@notcodesid/routing-for-backend-engineer-aeaa6f4d8465 
+----------------------------------------------------
 
 
 
