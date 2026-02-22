@@ -77,6 +77,9 @@ userSchema.methods.isPasswordCorrect = async  function( password ){
 
 //JWT --> is a bearer token , jis k pass bhi ye token hoga , hm usia data de degai 
 // in tamam methods mai stored data jo db mai hai un ka access hai this kr k
+
+// short lived expiry
+// authorization : i.e Login user (authenticated user) ko hi kaam krne do
 userSchema.methods.generateAccessToken = function(){
     return jwt.sign(
         {
@@ -91,6 +94,8 @@ userSchema.methods.generateAccessToken = function(){
 
 }
 
+// long lived expiry 
+ye db or user dono k paas rehta hai, user
 userSchema.methods.generateRefreshToken = function(){
     return jwt.sign(
         {

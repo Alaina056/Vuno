@@ -1,6 +1,7 @@
 import { Router } from "express";
-import { registerUser } from "../controllers/user.controller.js";
+import { loginUser, logoutUser, registerUser } from "../controllers/user.controller.js";
 import {upload } from "../middlewares/multer.middleware.js";
+import { verifyJWT } from "../middlewares/auth.middleware.js";
 
 // we use Router from express to do backend routing
 const router = Router();
@@ -22,8 +23,14 @@ router.route("/register").post(
     ]),
     registerUser)
 
+router.route("/login").post(loginUser);
 
+// Secure Routes 
+// the routes allowed when user is logged in.
+router.route("/logout").post(verifyJWT, logoutUser)
+// by running verifyJWT middleware, we now have user in req obj in logout user func
 
+// token is the only way to check if user is logged in or not.  (using auth middleware)
 
 
 export default router;
