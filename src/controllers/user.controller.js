@@ -122,7 +122,7 @@ const loginUser = asyncHandler(async (req, res) => {
   const { email, username, password } = req.body;
 
   // STEP 2 : Checking if user exist by username or email
-  if (!username || !email) {
+  if (!username && !email) {
     throw new ApiError(400, "Username or email is required");
   }
   const user = await User.findOne({
@@ -149,7 +149,16 @@ const loginUser = asyncHandler(async (req, res) => {
   // STEP 5 :sending Cookie;
   // db mai aik or query chla rhai hai --> this might be expensive so here you  have to decide what to do, existing user obj ko hi modify krna hai ya aik or db call
   // jo purana user object hai us mai refreshTOken nhe hai kio k we have saved this after
-  const loggedInUser = await User.findById(user._id).select("password -refreshToken")
+  const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
+
+  //! ERROR: That error:
+
+// MongoServerError: Cannot do exclusion on field refreshToken in inclusion projection
+// means you're mixing inclusion and exclusion in the same projection.
+// In MongoDB, you must choose one style (except for _id):
+  // const loggedInUser = await User.findById(user._id).select("password -refreshToken")  // including password and excluding refreshToken --> not allowed in mongoDB
+
+
 
   const options = {
     httpOnly: true,
