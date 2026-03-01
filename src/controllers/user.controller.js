@@ -262,9 +262,113 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         )
       );
   } catch (error) {
-    throw new ApiError(401, error?.message || "Invalid refresh token")
+    throw new ApiError(401, error?.message || "Invalid refresh token");
   }
 });
-export { registerUser, loginUser, logoutUser, refreshAccessToken };
+
+//? UPDATE CONTROLLERS FOR USER
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+  const { oldPassword, newPassword, confirmPassword } = req.body;
+
+  if (newPassword != confirmPassword) {
+    throw new ApiError(401, "New Password and Confirm Password do not match.");
+  }
+  // again , here we can use the middleware verifyJWT to check if the user is logged in or not? [Loggin user can only change password na]
+  // after the verifyJWT middleware, we know req.user is injected to request.
+
+  const user = await User.findById(req.user?._id);
+  const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
+
+  if (!isPasswordCorrect) {
+    throw new ApiError(400, "Invalid Password");
+  }
+
+  user.password = newPassword;
+
+  // here we have isPassword method in user.model.js , so the encryption of password is already being done ther
+  await user.save({ validateBeforeSave: false });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Password Updated Successfully"));
+});
+
+// verifyJWT middleware chlai ga
+const getCurrentUser = asyncHandler(async (req, res) => {
+  return (
+    res
+      .status(200)
+
+      // frontend pr ye json handle krte hai
+      .json(200, req.user, "Current User fetched successfully")
+  );
+});
+
+const updateUserProfile = asyncHandler(async (req, res) => {
+  const { username, email, fullname } = req.body;
+  if (!username && !email && !fullname) {
+    throw new ApiError(400, "All fields are required");
+  }
+
+  const user = User.findByIdAndUpdate(
+    req.user._id,
+    {
+      // mongoose operator to update field in db
+      $set: {
+        username,
+        email,
+        fullname,
+      },
+    },
+    { new: true } // send the updated response
+  ).select("-password");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Account details updated successfully"));
+});
+
+// when updating any file, we will use two middlewares: first authenticated user can update photo so verifyJWT , and to updload new file the "mutler middleware"
+const updateUserAvatar = asyncHandler(async (req, res) => {
+  // to update the avatar:
+  // user is logged in? --> checked by verifyJWT middleware (will insert this in routes)
+  // multer middleware will updload the file "locally"
+  // now we have localFilePath, we can upload it to cloudinary by uploadOnCloudinary() utility
+
+  // here we want only 1 file so not fileS
+  const avatarLocalPath = req.file?.path;
+
+  if (!avatarLocalPath) {
+    throw new ApiError(400, "Avatar file is misssing");
+  }
+  const avatar = await uploadOnCloudinary(avatarLocalPath);
+  if (!avatar?.url) {
+    throw new ApiError(400, "Error while uploading on avatar");
+  }
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      // PATCH
+      $set: {
+        avatar: avatar.url,
+      },
+    },
+    { new: true }
+  ).select("-password");
+
+  return res.status(200)
+            .json(new ApiResponse(200, user, "Avatar Image is updated successfully"))
+});
+
+export {
+  registerUser,
+  loginUser,
+  logoutUser,
+  refreshAccessToken,
+  getCurrentUser,
+  changeCurrentPassword,
+  updateUserProfile,
+  updateUserAvatar,
+};
 // Routes are very important in backend, koi backend function kb chalai? jb koi URL hit ho , tb aik specific function/code chlai
 // n short routing just means connecting a URL to some logic on the server that handles it.
