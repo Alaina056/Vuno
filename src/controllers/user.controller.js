@@ -3,6 +3,8 @@ import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import jwt, { decode } from "jsonwebtoken";
+
 // An interpreter executes code line-by-line at runtime without generating a separate machine code file, whereas a Just-In-Time (JIT) compiler compiles frequently used blocks of code into native machine code at runtime and caches the result for future reuse, leading to better performance over time. The JIT is an optimization method often used within an interpreter's runtime environment.
 // A JIT compiler is a hybrid approach that aims to combine the flexibility of interpretation with the speed of compilation. It operates at runtime, identifying "hot spots" (frequently executed code sections) and compiling them into highly optimized native machine code.
 
@@ -144,74 +146,125 @@ const loginUser = asyncHandler(async (req, res) => {
   }
 
   //STEP 4: Generating access and refresh token
-  const {accessToken, refreshToken} = await generateAccessAndRefereshTokens(user._id);
+  const { accessToken, refreshToken } = await generateAccessAndRefereshTokens(
+    user._id
+  );
 
   // STEP 5 :sending Cookie;
   // db mai aik or query chla rhai hai --> this might be expensive so here you  have to decide what to do, existing user obj ko hi modify krna hai ya aik or db call
   // jo purana user object hai us mai refreshTOken nhe hai kio k we have saved this after
-  const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
+  const loggedInUser = await User.findById(user._id).select(
+    "-password -refreshToken"
+  );
 
   //! ERROR: That error:
 
-// MongoServerError: Cannot do exclusion on field refreshToken in inclusion projection
-// means you're mixing inclusion and exclusion in the same projection.
-// In MongoDB, you must choose one style (except for _id):
+  // MongoServerError: Cannot do exclusion on field refreshToken in inclusion projection
+  // means you're mixing inclusion and exclusion in the same projection.
+  // In MongoDB, you must choose one style (except for _id):
   // const loggedInUser = await User.findById(user._id).select("password -refreshToken")  // including password and excluding refreshToken --> not allowed in mongoDB
-
-
 
   const options = {
     httpOnly: true,
     secure: true,
     // the above two properties makes sure that this cookie can only be modified by server and not frontend
+  };
 
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiResponse(
+        200,
+        {
+          user: loggedInUser,
+          accessToken,
+          refreshToken,
+        },
+        "User Logged In Successfully"
+      )
+    );
+});
+
+// loggin out user means: 1. remove access and refresh token from client browser 2. remove(reset to null) the refresh Token from db
+const logoutUser = asyncHandler(async (req, res) => {
+  //request , response aik object hi hota hai
+  // and through middlewar e hm in objects mai hi method/property add krte hai
+
+  // so we get the user info from accessTOken, as if user is logged in , then it has accessTOken in its cookies, so we retrieve that from cookies (we created a auth middleare for this)
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set: {
+        refreshToken: undefined,
+      },
+    },
+    {
+      // returned mai jo response milai ga , wo updated value de ga
+      new: true,
+    }
+  );
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+
+  return res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new ApiResponse(200, {}, "User Logged Out"));
+});
+
+const refreshAccessToken = asyncHandler(async (req, res) => {
+  const incomingRefreshToken =
+    req.cookies.refreshToken || req.body.refreshToken;
+
+  if (!incomingRefreshToken) {
+    throw new ApiError(401, "Unauthorized Request");
   }
 
-  return res.status(200)
-            .cookie('accessToken',accessToken, options)
-            .cookie('refreshToken',refreshToken, options)
-            .json(
-              new ApiResponse(200,
-                {
-                  user: loggedInUser, accessToken, refreshToken
-                },
-                "User Logged In Successfully"
-              )
-            )
-            });
+  try {
+    // decoding the encrypted token stored in user cookies, as in db it is not encrptyed
+    const decodedToken = jwt.verify(
+      incomingRefreshToken,
+      process.env.REFRESH_TOKEN_SECRET
+    );
+    const user = await User.findById(decodedToken?._id); // see generateRefreshTOken func
+    if (!user) {
+      throw new ApiError(401, "Invalid Refresh Token");
+    }
 
-
-            // loggin out user means: 1. remove access and refresh token from client browser 2. remove(reset to null) the refresh Token from db
-const logoutUser = asyncHandler(async (req, res) =>{
-    //request , response aik object hi hota hai
-    // and through middlewar e hm in objects mai hi method/property add krte hai
-    
-    // so we get the user info from accessTOken, as if user is logged in , then it has accessTOken in its cookies, so we retrieve that from cookies (we created a auth middleare for this)
-    const user = await User.findByIdAndUpdate(
-      req.user._id,
-      {
-        $set: { 
-          refreshToken : undefined
-        }
-      },
-      {
-
-        // returned mai jo response milai ga , wo updated value de ga
-        new: true
-      }
-    )
+    if (user?.refreshToken != decodedToken) {
+      throw new ApiError(401, "Refresh token is expired or used");
+    }
 
     const options = {
       httpOnly: true,
-      secure: true
-    }
+      secure: true,
+    };
 
-    return res  
-            .status(200)
-            .clearCookie("accessToken",options)
-            .clearCookie("refreshToken",options)
-            .json(new ApiResponse(200,{}, "User Logged Out"))
-})
-export { registerUser, loginUser, logoutUser };
+    const { accessToken, refreshToken } = await generateAccessAndRefereshTokens(
+      user._id
+    );
+
+    return res
+      .status(200)
+      .cookie("accessToken", accessToken, options)
+      .cookie("refreshToken", refreshToken, options)
+      .json(
+        new ApiResponse(
+          200,
+          { accessToken, refreshToken },
+          "Access Token is Refreshed."
+        )
+      );
+  } catch (error) {
+    throw new ApiError(401, error?.message || "Invalid refresh token")
+  }
+});
+export { registerUser, loginUser, logoutUser, refreshAccessToken };
 // Routes are very important in backend, koi backend function kb chalai? jb koi URL hit ho , tb aik specific function/code chlai
 // n short routing just means connecting a URL to some logic on the server that handles it.

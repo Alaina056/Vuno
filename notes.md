@@ -58,6 +58,16 @@ article : https://medium.com/@notcodesid/routing-for-backend-engineer-aeaa6f4d84
 ----------------------------------------------------
 
 
+// ACCESS AND REFRESH TOKEN
+- refreshToken (session storage):
+  accessToken expire hogya to ,401 response ayai ga
+  yaha frontend wala bnda ye krskta hai, k wo 401 response pr user ka (aik end point hit kro and waha se apna access Token refresh krwa lo)
+  - so ye kaam backend pr hi hoga, frontend bs us endpoint(URL) ko hit krai ga to refresh the access token
+  
+  -refreshToken (us k browser) se lai ga and then use ko backend pr send krai ga
+  if dono refrsh token same hai to, hm new session start krai gai means new accessToken or refresh TOken generate hoga and sb wesai hi phr se kaam krai ga
+  (so password and login ki need nhe hogi baar baar)
+
 
 
 
