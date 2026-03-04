@@ -4,6 +4,7 @@ import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt, { decode } from "jsonwebtoken";
+import { channel, subscribe } from "diagnostics_channel";
 
 // An interpreter executes code line-by-line at runtime without generating a separate machine code file, whereas a Just-In-Time (JIT) compiler compiles frequently used blocks of code into native machine code at runtime and caches the result for future reuse, leading to better performance over time. The JIT is an optimization method often used within an interpreter's runtime environment.
 // A JIT compiler is a hybrid approach that aims to combine the flexibility of interpretation with the speed of compilation. It operates at runtime, identifying "hot spots" (frequently executed code sections) and compiling them into highly optimized native machine code.
@@ -356,8 +357,91 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     { new: true }
   ).select("-password");
 
-  return res.status(200)
-            .json(new ApiResponse(200, user, "Avatar Image is updated successfully"))
+  //? TODO : After file is uploaded correctly , DELETE old file (make a utility function)
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Avatar Image is updated successfully"));
+});
+
+//? SUBSCRIPTION SCHEMA  [AGGREGATION PIPELINE]
+const getUserChannelProfil = asyncHandler(async (req, res) => {
+  const { username } = req.params;
+  if (!username?.trim()) {
+    throw new ApiError(400, "Username is missing");
+  }
+
+  //* MongoDB Aggregation Pipelines
+  // User.aggregate( [{ first pipeline}, { second pipeline} ])
+  // pipeline means stage by stage operation. the output of one stage is the input of another stage
+  const userAggregate = await User.aggregate([
+    {
+      $match: {
+        username: username?.toLowerCase(), // will give you one user , whose username
+      },
+    },
+    {
+      $lookup: {
+        // join operation  [User and Subscripton model ka join]
+        from: "subscriptions", // in mongodb , our table is saved as all lowercase and plural form
+        localField: "_id",
+        foreignField: "channel",
+        as: "subscribers", // will give all doc where user k subscribers
+      },
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "subscriber",
+        as: "subscribedTo", // maine kis ko subscribe kr rkha hai
+      },
+    },
+    {
+      $addFields: {
+        // add this fields (column) into our table ( or docuemnt ), this will add subscriberCOunt and channelsSUbscribedToCount in the User table as two more fields
+        subscribersCount: {
+          $size: "$subscribers", // this is same --> the above lookup alias "subscribers"
+        },
+        channelsSubscribedToCount: {
+          $size: "$subscribedTo", // $ indicates it is a field now
+        },
+        isSubscribed: {
+          // to check k subscribe button ko kia dekhana hai? subscribed ya subscribe
+
+          $cond: {
+            if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+            then: true,
+            else: false,
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        // like giving fields name in Select statement
+        fullname: 1,
+        username: 1,
+        subscribersCount: 1,
+        channelsSubscribedToCount: 1,
+        isSubscribed: 1,
+        avatar: 1,
+        coverImage: 1,
+        email: 1,
+      },
+    },
+  ]);
+
+  // aggregate pipeline returns an array of objects
+  // console.log(userAggregate)
+
+  if (!userAggregate?.length) {
+    throw new ApiError(404, "Channel does not exists");
+  }
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, userAggregate[0], "User Channel Fetched Successfully")
+    );
 });
 
 export {
@@ -369,6 +453,7 @@ export {
   changeCurrentPassword,
   updateUserProfile,
   updateUserAvatar,
+  getUserChannelProfil
 };
 // Routes are very important in backend, koi backend function kb chalai? jb koi URL hit ho , tb aik specific function/code chlai
 // n short routing just means connecting a URL to some logic on the server that handles it.
