@@ -5,6 +5,7 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt, { decode } from "jsonwebtoken";
 import { channel, subscribe } from "diagnostics_channel";
+import mongoose from "mongoose";
 
 // An interpreter executes code line-by-line at runtime without generating a separate machine code file, whereas a Just-In-Time (JIT) compiler compiles frequently used blocks of code into native machine code at runtime and caches the result for future reuse, leading to better performance over time. The JIT is an optimization method often used within an interpreter's runtime environment.
 // A JIT compiler is a hybrid approach that aims to combine the flexibility of interpretation with the speed of compilation. It operates at runtime, identifying "hot spots" (frequently executed code sections) and compiling them into highly optimized native machine code.
@@ -364,7 +365,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
 });
 
 //? SUBSCRIPTION SCHEMA  [AGGREGATION PIPELINE]
-const getUserChannelProfil = asyncHandler(async (req, res) => {
+const getUserChannelProfile = asyncHandler(async (req, res) => {
   const { username } = req.params;
   if (!username?.trim()) {
     throw new ApiError(400, "Username is missing");
@@ -444,6 +445,65 @@ const getUserChannelProfil = asyncHandler(async (req, res) => {
     );
 });
 
+//? VIDEO MODEL (watch history)
+const getWatchHistory = asyncHandler(async (req, res) => {
+
+  //* INTERVIEW:
+    // req.user._id  --> gives you the string ObjectId(dfdfjsdl)
+    // when we use this _id in moongoose methods it automatically parse to idss.
+
+  const user = await User.aggregate([
+    {
+      $match : {
+        // _id : req.user._id             // yaha wo uper wali logic nhe clhit , (aggregation mai)
+        // we have to manually parse it
+        _id: new mongoose.Types.ObjectId(req.user._id)
+      }
+    },
+    {
+      $lookup: {
+        from: "videos" ,   // all lower case + plural
+        localField: "watchHistory",
+        foreignField: "_id",
+        as : 'watchHistory',
+
+        pipeline :[                       //nested lookup : here we are in videos table
+          {
+              $lookup: {
+                from: "users",
+                localField: "owner",   // video table ki field (that is user id)
+                foreignField: "_id",
+                as : "owner",
+
+                // owner field k andr ye pipeline chlai gi
+                pipeline: [
+                  {
+                    $project: {
+                        fullname : 1,
+                        username: 1,
+                        avatar: 1
+                    }
+                  }
+                ]
+              }
+          },
+          {
+              $addFields : {
+                owner : {
+                  $first: "$owner"    // owner field se value retrieve krni hai so $ sign
+                }
+              }
+
+          }
+        ]
+      }
+    }
+  ])
+
+  return res.status(200)
+            .json(new ApiResponse(200, user[0].watchHistory, "Watched History Fetched Successfully"))
+})
+
 export {
   registerUser,
   loginUser,
@@ -453,7 +513,8 @@ export {
   changeCurrentPassword,
   updateUserProfile,
   updateUserAvatar,
-  getUserChannelProfil
+  getUserChannelProfile,
+  getWatchHistory
 };
 // Routes are very important in backend, koi backend function kb chalai? jb koi URL hit ho , tb aik specific function/code chlai
 // n short routing just means connecting a URL to some logic on the server that handles it.

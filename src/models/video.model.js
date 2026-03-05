@@ -12,7 +12,7 @@ const videoSchema = new Schema(
             required : true
         },
         owner:{
-            type: Schema.Types.ObjectId,
+            type: Schema.Types.ObjectId,   // this field will only have the _ids
             ref: "User"
         },
         title:{
