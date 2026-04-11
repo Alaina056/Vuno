@@ -1,5 +1,8 @@
 import mongoose, { Schema } from "mongoose";
 
+
+// here , If user likes a video then a doc is saved with video and likedBY
+// If user likes a tweet ,then the another doc will be saved with tweet and likeBy.
 const likeSchema = new Schema({
     video : {
         type: Schema.Types.ObjectId,

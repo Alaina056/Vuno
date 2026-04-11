@@ -6,7 +6,7 @@ const tweetSchema = new Schema({
         required: true
     },
     owner : {
-        type: Schema.Types.ObjectId,
+        type: Schema.Types.ObjectId,      // in this type of fields, in controllers we have to fetch the data by hitting the db (i.e User)
         ref : "User"
     }
 },{

@@ -39,3 +39,6 @@ export const verifyJWT = asyncHandler(async (req, _, next) => {    //since we do
 
   }
 });
+
+
+// ye sirf Authentication check kr rha hai and not Authorization (For example is this user authorized to update this comment?)

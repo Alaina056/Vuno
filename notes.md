@@ -68,8 +68,24 @@ article : https://medium.com/@notcodesid/routing-for-backend-engineer-aeaa6f4d84
   if dono refrsh token same hai to, hm new session start krai gai means new accessToken or refresh TOken generate hoga and sb wesai hi phr se kaam krai ga
   (so password and login ki need nhe hogi baar baar)
 
+------------------------------------------------------------------------------------------------------
+// 2. IDs vs. Full Objects
+// This is the most common source of confusion. Here is the rule of thumb:
 
+// When to use just the ID:
+// When saving a new document to the database. Most databases (like MongoDB or SQL) prefer "References." Instead of saving a giant user object inside every comment, you save the userId.
 
+// Performance: It keeps your database small.
+
+// Consistency: If the user changes their profile picture, you don't want to have to update 1,000 comments where that picture was saved. If you only saved the ID, the link stays the same.
+
+// When to use the Full Object:
+// When sending a response to the frontend. The frontend needs the user's name and avatar to display the comment, not just a random string of numbers like 64afb2....
+
+// In MongoDB, you use .populate('user').
+
+// In SQL, you use a JOIN
+------------------------------------------------------------------------------------------------------
 
 
 
